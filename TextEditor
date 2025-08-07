@@ -1,0 +1,157 @@
+#include <iostream>
+#include <stack>
+#include <string>
+#include <windows.h>  // For Sleep and system("cls")
+
+using namespace std;
+
+string text = "";               // Editor text
+string clipboard = "";          // Clipboard text
+int cursorPos = 0;              // Cursor position
+stack<string> undoStack;        // Undo history
+stack<string> redoStack;        // Redo history
+
+// Function to display the current text with cursor position
+void display() {
+    system("cls");  // Clear console screen
+
+    cout << "----- Mini Text Editor -----" << endl;
+    cout << "Text: ";
+
+    // Display text with cursor indicated by '|'
+    for (int i = 0; i <= text.length(); ++i) {
+        if (i == cursorPos) cout << '|';
+        if (i < text.length()) cout << text[i];
+    }
+
+    cout << "\n\n[Commands]:\n"
+         << "1. insert <text>\n"
+         << "2. copy\n"
+         << "3. paste\n"
+         << "4. cut\n"
+         << "5. undo\n"
+         << "6. redo\n"
+         << "7. move <left/right>\n"
+         << "8. exit\n";
+}
+
+// Insert text at the cursor
+void insertText(const string& inputText) {
+    undoStack.push(text);  // Save for undo
+    while (!redoStack.empty()) redoStack.pop(); // Clear redo stack
+    text.insert(cursorPos, inputText);
+    cursorPos += inputText.length();
+}
+
+// Copy 5 characters from cursor
+void copy() {
+    if (cursorPos >= text.length()) {
+        clipboard = "";
+    } else {
+        clipboard = text.substr(cursorPos, min(5, (int)text.length() - cursorPos));
+    }
+    cout << "Copied: " << clipboard << endl;
+    Sleep(500);
+}
+
+// Paste from clipboard
+void paste() {
+    if (!clipboard.empty()) {
+        undoStack.push(text);
+        while (!redoStack.empty()) redoStack.pop(); // Clear redo stack
+        text.insert(cursorPos, clipboard);
+        cursorPos += clipboard.length();
+        cout << "Pasted: " << clipboard << endl;
+    } else {
+        cout << "Clipboard is empty!" << endl;
+    }
+    Sleep(500);
+}
+
+// Cut 5 characters
+void cut() {
+    if (cursorPos >= text.length()) {
+        clipboard = "";
+    } else {
+        undoStack.push(text);
+        while (!redoStack.empty()) redoStack.pop(); // Clear redo stack
+        clipboard = text.substr(cursorPos, min(5, (int)text.length() - cursorPos));
+        text.erase(cursorPos, clipboard.length());
+    }
+    cout << "Cut: " << clipboard << endl;
+    Sleep(500);
+}
+
+// Undo last operation
+void undo() {
+    if (!undoStack.empty()) {
+        redoStack.push(text);
+        text = undoStack.top();
+        undoStack.pop();
+        cursorPos = min(cursorPos, (int)text.length());
+    } else {
+        cout << "Nothing to undo." << endl;
+        Sleep(500);
+    }
+}
+
+// Redo the undone operation
+void redo() {
+    if (!redoStack.empty()) {
+        undoStack.push(text);
+        text = redoStack.top();
+        redoStack.pop();
+        cursorPos = min(cursorPos, (int)text.length());
+    } else {
+        cout << "Nothing to redo." << endl;
+        Sleep(500);
+    }
+}
+
+// Move cursor left or right
+void moveCursor(const string& direction) {
+    if (direction == "left") {
+        if (cursorPos > 0) cursorPos--;
+    } else if (direction == "right") {
+        if (cursorPos < text.length()) cursorPos++;
+    }
+}
+
+int main() {
+    string command;
+    display();
+
+    while (true) {
+        cout << "\n> ";
+        cin >> command;
+
+        if (command == "insert") {
+            string inputText;
+            getline(cin >> ws, inputText); // Read rest of line after space
+            insertText(inputText);
+        } else if (command == "copy") {
+            copy();
+        } else if (command == "paste") {
+            paste();
+        } else if (command == "cut") {
+            cut();
+        } else if (command == "undo") {
+            undo();
+        } else if (command == "redo") {
+            redo();
+        } else if (command == "move") {
+            string dir;
+            cin >> dir;
+            moveCursor(dir);
+        } else if (command == "exit") {
+            break;
+        } else {
+            cout << "Unknown command!" << endl;
+            Sleep(500);
+        }
+
+        display();  // Show updated text
+    }
+
+    return 0;
+}
